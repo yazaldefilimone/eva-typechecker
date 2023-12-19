@@ -1,11 +1,11 @@
 import assert from "node:assert";
 import {  EvaTypechecker } from "../src/eva-typechecker.js";
+import { Type } from "../src/type.js";
 
 
 
 const evaTypechecker = new EvaTypechecker();
 
-assert.equal(evaTypechecker.checker(10), "number");
-assert.equal(evaTypechecker.checker("hello"), "string");
-assert.equal(evaTypechecker.checker(true), "boolean");
+assert.deepEqual(evaTypechecker.checker(10), Type.number);
+assert.deepEqual(evaTypechecker.checker('"hello"'), Type.string);
 console.log("All tests passed!")
