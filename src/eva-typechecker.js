@@ -1,3 +1,5 @@
+import { Type } from './type';
+
 export class EvaTypechecker {
   // infering and
   checker(expression) {
@@ -6,7 +8,7 @@ export class EvaTypechecker {
      */
 
     if (this._isNumber(expression)) {
-      return 'number';
+      return Type.number;
     }
 
     /**
@@ -14,7 +16,7 @@ export class EvaTypechecker {
      */
 
     if (this._isString(expression)) {
-      return 'string';
+      return Type.string;
     }
 
     throw new Error(`Unknown type for sexpression: ${expression}`);
@@ -23,6 +25,9 @@ export class EvaTypechecker {
     return typeof expression === 'number';
   }
   _isString(expression) {
-    return typeof expression === 'string';
+    if (typeof expression !== 'string') {
+      return false;
+    }
+    return Boolean(expression.at(0) === '"' && expression.at(-1) === '"');
   }
 }
