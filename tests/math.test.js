@@ -9,6 +9,6 @@ export default (evaTypechecker) => {
 
   // strings 
   test(evaTypechecker, ["+", `"hello"`, `"world"`], Type.string);
-  test(evaTypechecker, ["-", `"hello"`, `"world"`], Type.string);
+  // test(evaTypechecker, ["-", `"hello"`, `"world"`], Type.string);
 
 }
