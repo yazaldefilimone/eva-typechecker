@@ -1,8 +1,12 @@
 import { Type } from './type.js';
+import { TypeEnvironment } from './type-environment';
 
 export class EvaTypechecker {
+  constructor() {
+    this.global = this._createGlobalEnv();
+  }
   // infering and
-  checker(expression) {
+  checker(expression, env = this.global) {
     /**
      * Number 10
      */
@@ -20,7 +24,13 @@ export class EvaTypechecker {
     }
 
     if (this._isBinary(expression)) {
-      return this._Binary(expression);
+      return this._Binary(expression, env);
+    }
+
+    if (expression[0] === 'var') {
+      const [_, name, value] = expression;
+      const type = this.checker(value);
+      return env.define(name, type);
     }
     throw `Unknown type for sexpression: ${expression}`;
   }
@@ -39,7 +49,7 @@ export class EvaTypechecker {
         throw `Unknown operator ${operator}`;
     }
   }
-  _Binary(expression) {
+  _Binary(expression, env) {
     this._checkArity(expression, 2);
     const [operator, left, right] = expression;
     const leftType = this.checker(left);
@@ -69,6 +79,11 @@ export class EvaTypechecker {
     return atualType;
   }
 
+  _createGlobalEnv() {
+    return new TypeEnvironment({
+      VERSION: Type.string,
+    });
+  }
   _throw(atualType, expectedType, value, expression) {
     throw `Expected ${atualType} type for ${value} in  ${expression} but got ${expectedType}\n`;
   }
