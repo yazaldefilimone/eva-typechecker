@@ -1,5 +1,5 @@
 import { Type } from './type.js';
-import { TypeEnvironment } from './type-environment';
+import { TypeEnvironment } from './type-environment.js';
 
 export class EvaTypechecker {
   constructor() {
@@ -26,11 +26,15 @@ export class EvaTypechecker {
     if (this._isBinary(expression)) {
       return this._Binary(expression, env);
     }
-
-    if (expression[0] === 'var') {
-      const [_, name, value] = expression;
-      const type = this.checker(value);
-      return env.define(name, type);
+    if (this._isKeyword(expression, 'var')) {
+      return this._variableDeclaration(expression, env);
+    }
+    if (this._isKeyword(expression, 'begin')) {
+      const blockEnv = env.extend();
+      return this._checkerBlock(expression, blockEnv);
+    }
+    if (this._isVariable(expression)) {
+      return env.lookup(expression);
     }
     throw `Unknown type for sexpression: ${expression}`;
   }
@@ -84,6 +88,31 @@ export class EvaTypechecker {
       VERSION: Type.string,
     });
   }
+  _variableDeclaration(expression, env) {
+    const [_tag, nameExpression, value] = expression;
+    const type = this.checker(value);
+    if (Array.isArray(nameExpression)) {
+      const [variableName, typeString] = nameExpression;
+      const atualTypeName = Type.formString(typeString);
+      this._expect(atualTypeName, type, variableName, expression);
+      return env.define(variableName, type);
+    }
+    return env.define(nameExpression, type);
+  }
+  _isVariable(expression) {
+    if (typeof expression !== 'string') {
+      return false;
+    }
+    return /^[+\-*/<>=a-zA-Z0-9_:]*$/.test(expression);
+  }
+  _checkerBlock(block, env) {
+    const [_tag, ...expressions] = block;
+    let lastType = null;
+    for (const expression of expressions) {
+      lastType = this.checker(expression, env);
+    }
+    return lastType;
+  }
   _throw(atualType, expectedType, value, expression) {
     throw `Expected ${atualType} type for ${value} in  ${expression} but got ${expectedType}\n`;
   }
@@ -98,5 +127,8 @@ export class EvaTypechecker {
   }
   _isBinary(expression) {
     return /^[+\-*/]$/.test(expression[0]);
+  }
+  _isKeyword(expression, keyword) {
+    return expression[0] === keyword;
   }
 }
