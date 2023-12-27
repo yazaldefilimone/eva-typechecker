@@ -11,7 +11,7 @@ export function test(evaTypechecker, code, expected){
   try {
     assert.strictEqual(atual.equals(expected), true);
   } catch (error) {
-    console.log(`Expected ${expected} type for ${code} but got ${atual}`)
+    console.log(`Expected  ${expected} type for ${code} but got ${atual}`)
     throw error;
   }
 }
