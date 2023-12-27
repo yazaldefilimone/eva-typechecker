@@ -13,14 +13,16 @@ export class TypeEnvironment {
     this.record[name] = _type;
     return _type;
   }
-
   lookup(name) {
-    if (this.record[name]) {
-      return this.record[name];
+    if (!this.record.hasOwnProperty(name)) {
+      if (this.parent) {
+        return this.parent.lookup(name);
+      }
+      throw new ReferenceError(`Variable ${name} is not defined`);
     }
-    if (this.parent) {
-      return this.parent.lookup(name);
-    }
-    throw `Undefined variable ${name}`;
+    return this.record[name];
+  }
+  extend(record = {}) {
+    return new TypeEnvironment(record, this);
   }
 }
