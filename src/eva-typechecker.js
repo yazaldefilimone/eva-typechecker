@@ -56,8 +56,8 @@ export class EvaTypechecker {
   _Binary(expression, env) {
     this._checkArity(expression, 2);
     const [operator, left, right] = expression;
-    const leftType = this.checker(left);
-    const rightType = this.checker(right);
+    const leftType = this.checker(left, env);
+    const rightType = this.checker(right, env);
     const suporteType = this._getOperandTypesForOperator(operator);
     this._expectTypesOperator(leftType, suporteType, expression);
     this._expectTypesOperator(rightType, suporteType, expression);
