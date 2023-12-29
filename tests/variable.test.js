@@ -6,7 +6,7 @@ export default (evaTypechecker) => {
   test(evaTypechecker, "x", Type.number);
   test(evaTypechecker, ["var", ["y", "string"], `"hello"`], Type.string);
   test(evaTypechecker, "y", Type.string);
-  test(evaTypechecker, ["var", ["y", "string"], 10], Type.string);
+  test(evaTypechecker, ["var", ["y", "number"], 10], Type.number);
   // global variable
   test(evaTypechecker, `VERSION`, Type.string);
 }
