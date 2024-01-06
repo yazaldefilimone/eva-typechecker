@@ -9,4 +9,14 @@ export default (evaTypechecker) => {
   ["+", ["*", "x", 5], "y"]
   ], 
   Type.number);
+
+
+  const astCode =  ["begin",
+    ["var", "x", 10],
+    ["begin", 
+      ["var", "y", 10],
+      ["+", ["*", "x", 5], "y"]
+    ]
+  ]
+  test(evaTypechecker, astCode, Type.number);
 }
