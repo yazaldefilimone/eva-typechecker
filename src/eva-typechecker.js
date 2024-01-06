@@ -33,6 +33,12 @@ export class EvaTypechecker {
       const blockEnv = env.extend();
       return this._checkerBlock(expression, blockEnv);
     }
+    if (this._isKeyword(expression, 'set')) {
+      const [_tag, refName, value] = expression;
+      const refType = this.checker(refName, env);
+      const valueType = this.checker(value, env);
+      return this._expect(refType, valueType, value, expression);
+    }
     if (this._isVariable(expression)) {
       return env.lookup(expression);
     }
