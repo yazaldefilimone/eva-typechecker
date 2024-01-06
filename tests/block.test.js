@@ -16,7 +16,8 @@ export default (evaTypechecker) => {
     ["begin", 
       ["var", "y", 10],
       ["+", ["*", "x", 5], "y"]
-    ]
+    ],
+    ["set", "x",`"hello"`]
   ]
   test(evaTypechecker, astCode, Type.number);
 }
