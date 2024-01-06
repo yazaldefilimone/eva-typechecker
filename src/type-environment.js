@@ -1,10 +1,9 @@
+const defaultRecord = {
+  VERSION: '0.0.1',
+};
+
 export class TypeEnvironment {
-  constructor(
-    record = {
-      VERSION: '0.0.1',
-    },
-    parent = null,
-  ) {
+  constructor(record = defaultRecord, parent = null) {
     this.record = record;
     this.parent = parent;
   }
@@ -14,14 +13,19 @@ export class TypeEnvironment {
     return _type;
   }
   lookup(name) {
-    if (!this.record.hasOwnProperty(name)) {
-      if (this.parent) {
-        return this.parent.lookup(name);
-      }
+    return this.resolve(name).record[name];
+  }
+
+  resolve(name) {
+    if (this.record.hasOwnProperty(name)) {
+      return this;
+    }
+    if (!this.parent) {
       throw new ReferenceError(`Variable ${name} is not defined`);
     }
-    return this.record[name];
+    return this.parent.resolve(name);
   }
+
   extend(record = {}) {
     return new TypeEnvironment(record, this);
   }
