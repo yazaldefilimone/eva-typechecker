@@ -17,7 +17,28 @@ export default (evaTypechecker) => {
       ["var", "y", 10],
       ["+", ["*", "x", 5], "y"]
     ],
-    ["set", "x",`"hello"`]
+    ["set", "x", 10]
   ]
   test(evaTypechecker, astCode, Type.number);
+
+  const code = `
+    (var x 10)
+    (begin
+      (var y 10)
+      (+ (* x 5) y)
+    )
+    (set x 10)
+  `
+  test(evaTypechecker, code, Type.number);
+
+
+  const variableDeclaration = `
+  (var x 10)
+  `;
+  test(evaTypechecker, variableDeclaration, Type.number);
+
+  const binary = `
+  (+ 10 x)
+  `;
+  test(evaTypechecker, binary, Type.number);
 }
