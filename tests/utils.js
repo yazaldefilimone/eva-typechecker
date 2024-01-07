@@ -1,8 +1,12 @@
 import assert  from "node:assert";
+import parser from "../src/parser.js";
 
 
 export function exec(evaTypechecker, code){
-  return evaTypechecker.checker(code);
+  if(typeof code === "string"){
+    code = parser.parse(`(begin ${code})`);
+  }
+  return evaTypechecker.checkerGlobal(code);
 }
 
 
