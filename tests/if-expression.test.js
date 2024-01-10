@@ -3,5 +3,5 @@ import { Type } from "../src/type.js";
 
 export default (evaTypechecker) => {
   const code = `(<= 1 2)`;
-  test(evaTypechecker, code, Type.number);
+  test(evaTypechecker, code, Type.boolean);
 }
