@@ -65,11 +65,26 @@ export class EvaTypechecker {
       return this._expect(refType, valueType, value, expression);
     }
 
+    if (this._isKeyword(expression, 'if')) {
+      const [_tag, test, consequent, alternate] = expression;
+      const testType = this.checker(test, env);
+      this._expect(testType, Type.boolean, test, expression);
+      const consequentType = this.checker(consequent, env);
+      const alternateType = this.checker(alternate, env);
+      return this._expect(consequentType, alternateType, expression, expression);
+    }
+    if (this._isKeyword(expression, 'while')) {
+      const [_tag, test, body] = expression;
+      const testType = this.checker(test, env);
+      this._expect(testType, Type.boolean, test, expression);
+      const bodyType = this.checker(body, env);
+      return bodyType
+    }
     if (this._isVariable(expression)) {
       return env.lookup(expression);
     }
 
-    throw `Unknown type for sexpression: ${expression}`;
+    throw `Unknown type for expression: ${expression}`;
   }
 
   _getOperandTypesForOperator(operator) {
