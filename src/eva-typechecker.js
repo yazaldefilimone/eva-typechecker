@@ -41,7 +41,7 @@ export class EvaTypechecker {
       return Type.boolean;
     }
 
-    if (this._isBoolanBinary(expression)) {
+    if (this._isBooleanBinary(expression)) {
       return this._booleanBinary(expression, env);
     }
 
@@ -129,7 +129,7 @@ export class EvaTypechecker {
       VERSION: Type.string,
     });
   }
-  _isBoolanBinary(expression) {
+  _isBooleanBinary(expression) {
     switch (expression[0]) {
       case '>':
       case '<':
