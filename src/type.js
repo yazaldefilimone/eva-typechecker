@@ -14,14 +14,14 @@ export class Type {
   equals(type) {
     return this._name === type.getName();
   }
-  static formString(string) {
-    if (this.hasOwnProperty(string)) {
-      return this[string];
+  static formString(typeInStr) {
+    if (this.hasOwnProperty(typeInStr)) {
+      return this[typeInStr];
     }
-    if (string.startsWith('Fn<')) {
-      return Type.Function.formString(string);
+    if (typeInStr.startsWith('Fn<')) {
+      return Type.Function.formString(typeInStr);
     }
-    throw `Unknown type: ${string}`;
+    throw `Unknown type: ${typeInStr}`;
   }
 }
 
@@ -31,7 +31,7 @@ Type.string = new Type('string');
 
 // meta type
 Type.Function = class extends Type {
-  constructor({fnName = null, paramsType, returnType}) {
+  constructor({ fnName = null, paramsType, returnType }) {
     super(fnName);
     this.paramsType = paramsType;
     this.returnType = returnType;
@@ -43,30 +43,30 @@ Type.Function = class extends Type {
   Fn<number<number, number>>: function that return a number and receive two numbers
 */
   getName() {
-    if (this.name === null) {
+    if (!this.name) {
+      // lazy evaluation (but it's called only once, so maybe it's not a big deal)
       const name = ['Fn<', this.returnType.getName()];
       //  params
-      if (this.paramsType.length > 0) {
-        const params = [];
-        for (const param of this.paramsType) {
-          params.push(param.getName());
-        }
-        name.push("<", params.join(','), '>');
+      const params = [];
+      for (const param of this.paramsType) {
+        params.push(param.getName());
+      }
+      if (params.length > 0) {
+        name.push('<', params.join(','), '>');
       }
       name.push('>');
-      this.name = name.join('');
+      return name.join('');
     }
     return this.name;
   }
 
   equals(otherType) {
-    // it's possible to compare only the return type
-    // return this.getName() === type.getName();
-    console.log({otherType})
+    // it's possible to compare only the return type (better way to do it:)
+    // return this.getName() === otherType.getName();
     if (this.name !== otherType.getName()) {
       return false;
     }
-    if (this.returnType.equals(otherType.returnType)) {
+    if (!this.returnType.equals(otherType.returnType)) {
       return false;
     }
     if (this.paramsType.length !== otherType.paramsType.length) {
@@ -79,25 +79,27 @@ Type.Function = class extends Type {
     }
     return true;
   }
-  // Fn<number> -> Type.number 
+  // Fn<number> -> Type.number
   static formString(typeString) {
     if (this.hasOwnProperty(typeString)) {
       return this[typeString];
     }
     const fn = typeString.match(/Fn<(.+)<(.+)>>/);
     if (fn) {
-      const returnType = Type.formString(fn[1]);
-      const params = fn[2].split(',');
+      const [_, fnReturn, fnParams] = fn;
+      const returnType = Type.formString(fnReturn);
+      const params = fnParams.split(',');
       const paramsType = [];
       for (const param of params) {
         paramsType.push(Type.formString(param));
       }
       const type = new Type.Function({
-        fnName:typeString, paramsType, returnType
+        paramsType,
+        returnType,
       });
       this[typeString] = type;
-      return type
+      return type;
     }
-    throw `Unknown type: ${string}`;
+    throw `Unknown type: ${typeString}`;
   }
 };

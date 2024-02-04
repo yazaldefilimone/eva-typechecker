@@ -78,15 +78,14 @@ export class EvaTypechecker {
       const testType = this.checker(test, env);
       this._expect(testType, Type.boolean, test, expression);
       const bodyType = this.checker(body, env);
-      return bodyType
+      return bodyType;
     }
 
     if (this._isKeyword(expression, 'def')) {
-      console.log({expression})
       // (def name (params) -> returnType body)
-      const [_tag, name, fnParams, _retDel, fnReturn,fnBody] = expression;
+      const [_tag, name, fnParams, _retDel, fnReturn, fnBody] = expression;
       const fnType = this._typeCheckFunction(fnParams, fnReturn, fnBody, env);
-      return  env.define(name, fnType);
+      return env.define(name, fnType);
     }
 
     if (this._isVariable(expression)) {
@@ -96,7 +95,6 @@ export class EvaTypechecker {
     throw `Unknown type for expression: ${expression}`;
   }
   _typeCheckFunction(fnParams, fnReturn, fnBody, env) {
-    console.log({fnParams, fnReturn, fnBody, env})
     const returnType = Type.formString(fnReturn);
     const record = {};
     const paramsType = [];
@@ -109,7 +107,6 @@ export class EvaTypechecker {
     const fnEnv = env.extend(record);
 
     const actualReturnType = this.checker(fnBody, fnEnv);
-    console.log({actualReturnType, returnType})
     if (!returnType.equals(actualReturnType)) {
       throw `Expected function ${fnBody} to return ${returnType}, but got ${actualReturnType}`;
     }
