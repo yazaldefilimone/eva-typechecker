@@ -84,7 +84,7 @@ export class EvaTypechecker {
     if (this._isKeyword(expression, 'def')) {
       // (def name (params) -> returnType body)
       const [_tag, name, fnParams, _retDel, fnReturn, fnBody] = expression;
-
+      // TODO: syntax sugar for defining functions (transform to lambda and variable declaration)
       // pre-declare the function to allow recursion
       const paramsType = fnParams.map(([_, type]) => Type.formString(type));
       const fnType = new Type.Function({
@@ -93,6 +93,11 @@ export class EvaTypechecker {
       });
       env.define(name, fnType);
       // before checking the function body, we need to know the function's type
+      return this._typeCheckFunction(fnParams, fnReturn, fnBody, env);
+    }
+    if (this._isKeyword(expression, 'lambda')) {
+      // (lambda (params) -> returnType body)
+      const [_tag, fnParams, _retDel, fnReturn, fnBody] = expression;
       return this._typeCheckFunction(fnParams, fnReturn, fnBody, env);
     }
 
