@@ -189,6 +189,9 @@ export class EvaTypechecker {
   _createGlobalEnv() {
     return new TypeEnvironment({
       VERSION: Type.string,
+      // internal functions
+      sum: Type.formString('Fn<number<number,number>>'),
+      square: Type.formString('Fn<number<number>>'),
     });
   }
   _isBooleanBinary(expression) {
