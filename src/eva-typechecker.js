@@ -92,6 +92,25 @@ export class EvaTypechecker {
       return env.lookup(expression);
     }
 
+    if (Array.isArray(expression)) {
+      // (fn 10)
+      const [fn, ...args] = expression;
+      const fnType = this.checker(fn, env);
+      if (fnType instanceof Type.Function) {
+        const paramsType = fnType.paramsType;
+        if (paramsType.length !== args.length) {
+          throw `Expected ${paramsType.length} arguments, but got ${args.length}`;
+        }
+        const returnType = fnType.returnType;
+        for (let i = 0; i < args.length; i++) {
+          const arg = args[i];
+          const argType = this.checker(arg, env);
+          this._expect(argType, paramsType[i], arg, expression);
+        }
+        return returnType;
+      }
+    }
+
     throw `Unknown type for expression: ${expression}`;
   }
   _typeCheckFunction(fnParams, fnReturn, fnBody, env) {
