@@ -7,9 +7,9 @@ export class EvaTypechecker {
   }
 
   checkerGlobal(expression) {
-    return this._checherGlobal(expression, this.global);
+    return this._checkerBody(expression, this.global);
   }
-  _checherGlobal(expression, env) {
+  _checkerBody(expression, env) {
     if (this._isKeyword(expression, 'begin')) {
       return this._checkerBlock(expression, env);
     }
@@ -126,7 +126,7 @@ export class EvaTypechecker {
       });
 
       Type[name] = env.define(name, classType);
-      this.checker(body, env);
+      this._checkerBody(body, env);
       return classType;
     }
 
