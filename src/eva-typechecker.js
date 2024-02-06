@@ -116,6 +116,19 @@ export class EvaTypechecker {
       });
       return Type[name];
     }
+    // class Point  null (...body)
+    if (this._isKeyword(expression, 'class')) {
+      const [_tag, name, superBase, body] = expression;
+      const superBaseType = Type[superBase];
+      const classType = new Type.Class({
+        name,
+        superBaseType,
+      });
+
+      Type[name] = env.define(name, classType);
+      this.checker(body, env);
+      return classType;
+    }
 
     if (this._isVariable(expression)) {
       return env.lookup(expression);
