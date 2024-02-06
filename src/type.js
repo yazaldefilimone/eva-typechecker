@@ -1,10 +1,10 @@
 export class Type {
   constructor(name) {
-    this._name = name;
+    this.name = name;
   }
 
   getName() {
-    return this._name;
+    return this.name;
   }
 
   toString() {
@@ -12,7 +12,10 @@ export class Type {
   }
 
   equals(type) {
-    return this._name === type.getName();
+    if (type instanceof Type.Alias) {
+      return type.equals(this);
+    }
+    return this.name === type.name;
   }
   static formString(typeInStr) {
     if (this.hasOwnProperty(typeInStr)) {
@@ -101,5 +104,18 @@ Type.Function = class extends Type {
       return type;
     }
     throw `Unknown type: ${typeString}`;
+  }
+};
+
+Type.Alias = class extends Type {
+  constructor({ name, base }) {
+    super(name);
+    this.base = base;
+  }
+  equals(type) {
+    if (this.name === type.name) {
+      return true;
+    }
+    return this.base.equals(type);
   }
 };
