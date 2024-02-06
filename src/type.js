@@ -1,3 +1,5 @@
+import { TypeEnvironment } from './type-environment.js';
+
 export class Type {
   constructor(name) {
     this.name = name;
@@ -31,6 +33,7 @@ export class Type {
 Type.number = new Type('number');
 Type.boolean = new Type('boolean');
 Type.string = new Type('string');
+Type.null = new Type('null');
 
 // meta type
 Type.Function = class extends Type {
@@ -117,5 +120,35 @@ Type.Alias = class extends Type {
       return true;
     }
     return this.base.equals(type);
+  }
+};
+
+Type.Class = class extends Type {
+  constructor({ name, superBaseType = Type.null }) {
+    super(name);
+    this.superBaseType = superBaseType;
+    const superBaseTypeEnv = superBaseType !== Type.null ? superBaseType.env : null;
+    this.env = new TypeEnvironment({}, superBaseTypeEnv);
+  }
+  // equals
+
+  equals(otherType) {
+    if (this === otherType) {
+      return true;
+    }
+
+    if (otherType instanceof Type.Alias) {
+      return otherType.equals(this);
+    }
+
+    if (this.superBaseType !== Type.null) {
+      return this.superBaseType.equals(otherType);
+    }
+
+    return false;
+  }
+
+  getField(name) {
+    return this.env.lookup(name);
   }
 };
