@@ -150,7 +150,7 @@ export class EvaTypechecker {
       const classType = Type[name];
 
       if (!classType) {
-        throw `Class ${name} is not defined`;
+        throw `Unknown class ${className}.`;
       }
 
       const argsType = args.map((arg) => this.checker(arg, env));
@@ -162,13 +162,25 @@ export class EvaTypechecker {
 
     if (this._isKeyword(expression, 'prop')) {
       const [_tag, className, propName] = expression;
-      const classType = env.lookup(className);
+      const classType = this.checker(className, env);
       if (!classType) {
-        throw `Class ${className} is not defined`;
+        throw `Unknown class ${className}.`;
       }
       return classType.getField(propName);
     }
 
+    if (this._isKeyword(expression, 'super')) {
+      const [_tag, className] = expression;
+      const classType = Type[className];
+      if (!classType) {
+        throw `Unknown class ${className}.`;
+      }
+      const superBaseType = classType.superBaseType;
+      // if (superBaseType === Type.null) {
+      //   throw `Class ${className} does not have a super class.`;
+      // }
+      return superBaseType;
+    }
     if (this._isVariable(expression)) {
       return env.lookup(expression);
     }
