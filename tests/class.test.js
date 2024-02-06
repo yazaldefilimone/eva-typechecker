@@ -6,9 +6,10 @@ export default function(evaTypeChecker) {
   const classTestCode = `
   (class Point  null 
     (begin
+      (var (x number) 0)
       (def constructor ((self Point) (x number)) -> Point
         (begin
-          // (set self.x x)
+          (set (prop self x) x)
           self
         )
       )
@@ -19,9 +20,9 @@ export default function(evaTypeChecker) {
       ) 
     )
   )
+  (var (point Point) (new Point 10))
 
-  // (def p (new Point 10))s
-  10
+  ((prop point square) point 10)
   `
   test(evaTypeChecker, classTestCode, Type.number)
 }
