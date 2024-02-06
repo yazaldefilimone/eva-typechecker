@@ -101,6 +101,22 @@ export class EvaTypechecker {
       return this._typeCheckFunction(fnParams, fnReturn, fnBody, env);
     }
 
+    if (this._isKeyword(expression, 'type')) {
+      const [_tag, name, base] = expression;
+      if (Type.hasOwnProperty(name)) {
+        throw `type ${name} already defined: ${Type[name]}`;
+      }
+      if (!Type.hasOwnProperty(base)) {
+        throw `Type ${base} does not defined.`;
+      }
+
+      Type[name] = new Type.Alias({
+        name,
+        base: Type[base],
+      });
+      return Type[name];
+    }
+
     if (this._isVariable(expression)) {
       return env.lookup(expression);
     }
