@@ -60,6 +60,21 @@ export class EvaTypechecker {
 
     if (this._isKeyword(expression, 'set')) {
       const [_tag, refName, value] = expression;
+      // (set (prop self x) x)
+      // (tag (tag, instance, propName) value)
+      if (Array.isArray(refName) && refName[0] === 'prop') {
+        // (prop self x)
+        // (tag, instance, propName)
+        const [_prop, refInstance, propName] = refName;
+
+        const refInstanceType = this.checker(refInstance, env);
+        const valueType = this.checker(value, env);
+
+        const propType = refInstanceType.getField(propName);
+
+        return this._expect(valueType, propType, value, expression);
+      }
+
       const refType = this.checker(refName, env);
       const valueType = this.checker(value, env);
       return this._expect(refType, valueType, value, expression);
@@ -126,8 +141,32 @@ export class EvaTypechecker {
       });
 
       Type[name] = env.define(name, classType);
-      this._checkerBody(body, env);
+      this._checkerBody(body, classType.env);
       return classType;
+    }
+
+    if (this._isKeyword(expression, 'new')) {
+      const [_tag, name, ...args] = expression;
+      const classType = Type[name];
+
+      if (!classType) {
+        throw `Class ${name} is not defined`;
+      }
+
+      const argsType = args.map((arg) => this.checker(arg, env));
+      const constructorType = classType.getField('constructor');
+      // add self type to the arguments
+      argsType.unshift(classType);
+      return this._typeCheckFunctionCall(constructorType, argsType, expression, env);
+    }
+
+    if (this._isKeyword(expression, 'prop')) {
+      const [_tag, className, propName] = expression;
+      const classType = env.lookup(className);
+      if (!classType) {
+        throw `Class ${className} is not defined`;
+      }
+      return classType.getField(propName);
     }
 
     if (this._isVariable(expression)) {
@@ -138,22 +177,22 @@ export class EvaTypechecker {
       // (fn 10)
       const [fn, ...args] = expression;
       const fnType = this.checker(fn, env);
-      if (fnType instanceof Type.Function) {
-        const paramsType = fnType.paramsType;
-        if (paramsType.length !== args.length) {
-          throw `Expected ${paramsType.length} arguments, but got ${args.length}`;
-        }
-        const returnType = fnType.returnType;
-        for (let i = 0; i < args.length; i++) {
-          const arg = args[i];
-          const argType = this.checker(arg, env);
-          this._expect(argType, paramsType[i], arg, expression);
-        }
-        return returnType;
-      }
+      const actualArgsType = args.map((arg) => this.checker(arg, env));
+      return this._typeCheckFunctionCall(fnType, actualArgsType, expression, env);
     }
 
     throw `Unknown type for expression: ${expression}`;
+  }
+  _typeCheckFunctionCall(fnType, argsType, expression, env) {
+    const paramsType = fnType.paramsType;
+    if (paramsType.length !== argsType.length) {
+      throw `Expected ${paramsType.length} arguments, but got ${argsType.length}`;
+    }
+    const returnType = fnType.returnType;
+    argsType.forEach((argType, index) => {
+      this._expect(argType, paramsType[index], argsType[index], expression);
+    });
+    return returnType;
   }
   _typeCheckFunction(fnParams, fnReturn, fnBody, env) {
     const returnType = Type.formString(fnReturn);
