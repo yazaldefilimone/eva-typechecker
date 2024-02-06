@@ -13,16 +13,16 @@ export default function(evaTypeChecker) {
           self
         )
       )
-      (def square ((self Point) (num number)) -> number 
+      (def sum ((self Point) (num number)) -> number 
         (begin
-          (* num num)
+          (+ (prop self x) num)
         )
       ) 
     )
   )
   (var (point Point) (new Point 10))
 
-  ((prop point square) point 10)
+  ((prop point sum) point 10)
   `
   test(evaTypeChecker, classTestCode, Type.number)
 }
