@@ -142,6 +142,7 @@ Type.Class = class extends Type {
     }
 
     if (this.superBaseType !== Type.null) {
+      // inheritance
       return this.superBaseType.equals(otherType);
     }
 
