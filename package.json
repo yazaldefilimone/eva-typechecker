@@ -9,7 +9,7 @@
   "license": "MIT",
   "scripts": {
     "test:node": "node --watch ./tests/run.js",
-    "test:bun": "bun run --watch ./tests/run.js",
+    "test:bun": "bun --watch   ./tests/run.js",
     "pretest:node": "clear",
     "pretest:bun": "clear"
   },
