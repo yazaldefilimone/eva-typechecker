@@ -17,6 +17,10 @@ export class Type {
     if (type instanceof Type.Alias) {
       return type.equals(this);
     }
+    if (type instanceof Type.Union) {
+      const result = type.equals(this);
+      return result;
+    }
     return this.name === type.name;
   }
   static formString(typeInStr) {
@@ -151,5 +155,34 @@ Type.Class = class extends Type {
 
   getField(name) {
     return this.env.lookup(name);
+  }
+};
+
+Type.Union = class extends Type {
+  constructor({ name, types }) {
+    super(name);
+    this.types = types;
+  }
+
+  equals(otherType) {
+    if (this === otherType) {
+      return true;
+    }
+    if (otherType instanceof Type.Alias) {
+      return otherType.equals(this);
+    }
+    if (otherType instanceof Type.Union) {
+      return this.includesAll(otherType.types);
+    }
+    const result = this.types.some((type) => type.equals(otherType));
+    return result;
+  }
+
+  includesAll(types) {
+    if (types.length !== this.types.length) {
+      return false;
+    }
+
+    return types.every((type) => this.equals(type));
   }
 };
