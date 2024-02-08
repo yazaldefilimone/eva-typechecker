@@ -116,21 +116,33 @@ export class EvaTypechecker {
       return this._typeCheckFunction(fnParams, fnReturn, fnBody, env);
     }
 
+    // (type name base) // (type uuidType (or string number))
     if (this._isKeyword(expression, 'type')) {
       const [_tag, name, base] = expression;
       if (Type.hasOwnProperty(name)) {
-        throw `type ${name} already defined: ${Type[name]}`;
+        throw `type ${name} already defined.`;
       }
+      if (typeof base === 'object' && base[0] === 'or') {
+        const refs = base.slice(1);
+        const types = refs.map((type) => Type.formString(type));
+        const union = new Type.Union({
+          name,
+          types,
+        });
+        Type[name] = union;
+        return union;
+      }
+
       if (!Type.hasOwnProperty(base)) {
         throw `Type ${base} does not defined.`;
       }
-
       Type[name] = new Type.Alias({
         name,
         base: Type[base],
       });
       return Type[name];
     }
+
     // class Point  null (...body)
     if (this._isKeyword(expression, 'class')) {
       const [_tag, name, superBase, body] = expression;
@@ -143,21 +155,6 @@ export class EvaTypechecker {
       Type[name] = env.define(name, classType);
       this._checkerBody(body, classType.env);
       return classType;
-    }
-
-    if (this._isKeyword(expression, 'new')) {
-      const [_tag, name, ...args] = expression;
-      const classType = Type[name];
-
-      if (!classType) {
-        throw `Unknown class ${className}.`;
-      }
-
-      const argsType = args.map((arg) => this.checker(arg, env));
-      const constructorType = classType.getField('constructor');
-      // add self type to the arguments
-      argsType.unshift(classType);
-      return this._typeCheckFunctionCall(constructorType, argsType, expression, env);
     }
 
     if (this._isKeyword(expression, 'prop')) {
@@ -180,6 +177,24 @@ export class EvaTypechecker {
       //   throw `Class ${className} does not have a super class.`;
       // }
       return superBaseType;
+    }
+
+    if (this._isKeyword(expression, 'new')) {
+      const [_tag, className, ...args] = expression;
+      const classType = this.checker(className, env);
+      if (!classType) {
+        throw `Unknown class ${className}.`;
+      }
+      const argsType = args.map((arg) => this.checker(arg, env));
+      const constructorType = classType.getField('constructor');
+
+      if (!constructorType && args.length > 0) {
+        throw `class ${className} does not have a constructor.`;
+      }
+
+      argsType.unshift(classType);
+
+      return this._typeCheckFunctionCall(constructorType, argsType, expression, env);
     }
     if (this._isVariable(expression)) {
       return env.lookup(expression);
@@ -253,9 +268,14 @@ export class EvaTypechecker {
   }
 
   _expectTypesOperator(_type, allowedTypes, expression) {
-    if (!allowedTypes.some((currentType) => currentType.equals(_type))) {
-      throw `Unexpected type ${_type} in ${expression}, allowed: ${allowedTypes}`;
+    const isUnion = _type instanceof Type.Union;
+    if (isUnion && _type.includesAll(allowedTypes)) {
+      return;
     }
+    if (!isUnion && allowedTypes.some((t) => t.equals(_type))) {
+      return;
+    }
+    throw `Unexpected type ${_type} in ${expression}, allowed: ${allowedTypes}`;
   }
   _booleanBinary(expression, env) {
     this._checkArity(expression, 2);
@@ -305,9 +325,9 @@ export class EvaTypechecker {
     const type = this.checker(value);
     if (Array.isArray(nameExpression)) {
       const [variableName, typeString] = nameExpression;
-      const atualTypeName = Type.formString(typeString);
-      this._expect(atualTypeName, type, variableName, expression);
-      return env.define(variableName, type);
+      const atualType = Type.formString(typeString);
+      this._expect(atualType, type, variableName, expression);
+      return env.define(variableName, atualType);
     }
     return env.define(nameExpression, type);
   }
