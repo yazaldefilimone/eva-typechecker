@@ -57,7 +57,6 @@ export class EvaTypechecker {
       const blockEnv = env.extend();
       return this._checkerBlock(expression, blockEnv);
     }
-
     if (this._isKeyword(expression, 'set')) {
       const [_tag, refName, value] = expression;
       // (set (prop self x) x)
@@ -81,26 +80,32 @@ export class EvaTypechecker {
     }
 
     if (this._isKeyword(expression, 'if')) {
-      const [_tag, test, consequent, alternate] = expression;
-      const testType = this.checker(test, env);
-      this._expect(testType, Type.boolean, test, expression);
+      const [_tag, condition, consequent, alternate] = expression;
+      const conditionType = this.checker(condition, env);
+      this._expect(conditionType, Type.boolean, condition, expression);
+      // let record = env;
+      if (this._isNarrowingCondition(condition)) {
+        const [name, specific] = this._getSpecifiedType(condition);
+        // record = record.extend({ [name]: Type.formString(specific) });
+        const record = { [name]: Type.formString(specific) };
+        return this.checker(consequent, env.extend(record));
+      }
+
       const consequentType = this.checker(consequent, env);
       const alternateType = this.checker(alternate, env);
-      return this._expect(consequentType, alternateType, expression, expression);
+      return this._expect(alternateType, consequentType, expression, expression);
     }
     if (this._isKeyword(expression, 'while')) {
-      const [_tag, test, body] = expression;
-      const testType = this.checker(test, env);
-      this._expect(testType, Type.boolean, test, expression);
+      const [_tag, condition, body] = expression;
+      const conditionType = this.checker(condition, env);
+      this._expect(conditionType, Type.boolean, condition, expression);
       const bodyType = this.checker(body, env);
       return bodyType;
     }
 
     if (this._isKeyword(expression, 'def')) {
-      // (def name (params) -> returnType body)
-      const [_tag, name, fnParams, _retDel, fnReturn, fnBody] = expression;
-      // TODO: syntax sugar for defining functions (transform to lambda and variable declaration)
-      // pre-declare the function to allow recursion
+      const [_tag, name, fnParams, _retDel, fnReturn] = expression;
+      const lambdaFunction = this._transformFunctionDeclarationToLambda(expression);
       const paramsType = fnParams.map(([_, type]) => Type.formString(type));
       const fnType = new Type.Function({
         paramsType,
@@ -108,7 +113,7 @@ export class EvaTypechecker {
       });
       env.define(name, fnType);
       // before checking the function body, we need to know the function's type
-      return this._typeCheckFunction(fnParams, fnReturn, fnBody, env);
+      return this.checker(lambdaFunction, env);
     }
     if (this._isKeyword(expression, 'lambda')) {
       // (lambda (params) -> returnType body)
@@ -210,6 +215,16 @@ export class EvaTypechecker {
 
     throw `Unknown type for expression: ${expression}`;
   }
+  // todo: implement   (if __ (== (typeof wordOrNum) "string")...
+  _isNarrowingCondition(condition) {
+    const [operator, lhs] = condition;
+    return operator === '==' && lhs[0] === 'typeof';
+  }
+  // todo: implement  (if__ (== (typeof wordOrNum) "string")...
+  _getSpecifiedType(condition) {
+    const [_operator, [_typeof, name], specific] = condition;
+    return [name, specific.slice(1, -1)];
+  }
   _typeCheckFunctionCall(fnType, argsType, expression, env) {
     const paramsType = fnType.paramsType;
     if (paramsType.length !== argsType.length) {
@@ -217,9 +232,20 @@ export class EvaTypechecker {
     }
     const returnType = fnType.returnType;
     argsType.forEach((argType, index) => {
+      if (paramsType[index] === Type.any) {
+        return;
+      }
       this._expect(argType, paramsType[index], argsType[index], expression);
     });
     return returnType;
+  }
+  _transformFunctionDeclarationToLambda(expression) {
+    if (this._isGeneric(expression)) {
+      const [_tag, name, generic, fnParams, _retDel, fnReturn, fnBody] = expression;
+      return ['var', name, ['lambda', generic, fnParams, _retDel, fnReturn, fnBody]];
+    }
+    const [_tag, name, fnParams, _retDel, fnReturn, fnBody] = expression;
+    return ['var', name, ['lambda', fnParams, _retDel, fnReturn, fnBody]];
   }
   _typeCheckFunction(fnParams, fnReturn, fnBody, env) {
     const returnType = Type.formString(fnReturn);
@@ -302,9 +328,10 @@ export class EvaTypechecker {
   _createGlobalEnv() {
     return new TypeEnvironment({
       VERSION: Type.string,
-      // internal functions
+      // internal functions // fn<returnType<paramsType>>
       sum: Type.formString('Fn<number<number,number>>'),
       square: Type.formString('Fn<number<number>>'),
+      typeof: Type.formString('Fn<string<any>>'),
     });
   }
   _isBooleanBinary(expression) {
@@ -319,6 +346,11 @@ export class EvaTypechecker {
       default:
         return false;
     }
+  }
+  // (def name <T> (params) -> returnType body)
+  _isGeneric(expression) {
+    const regexGeneric = /<.*>/;
+    return expression.length === 7 && regexGeneric.test(expression[2]);
   }
   _variableDeclaration(expression, env) {
     const [_tag, nameExpression, value] = expression;
