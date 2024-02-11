@@ -187,3 +187,15 @@ Type.Union = class extends Type {
     return types.every((type) => this.equals(type));
   }
 };
+
+Type.GenericFunction = class extends Type {
+  constructor({ name = null, generics, fnParams, fnReturn, fnBody, env }) {
+    const builtName = `${name || 'lambda'}<${generics}>`;
+    super(builtName);
+    this.genericsType = generics.split(',');
+    this.fnParams = fnParams;
+    this.fnReturn = fnReturn;
+    this.fnBody = fnBody;
+    this.env = env;
+  }
+};
