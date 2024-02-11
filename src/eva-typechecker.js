@@ -106,19 +106,23 @@ export class EvaTypechecker {
     if (this._isKeyword(expression, 'def')) {
       const [_tag, name, fnParams, _retDel, fnReturn] = expression;
       const lambdaFunction = this._transformFunctionDeclarationToLambda(expression);
-      const paramsType = fnParams.map(([_, type]) => Type.formString(type));
-      const fnType = new Type.Function({
-        paramsType,
-        returnType: Type.formString(fnReturn),
-      });
-      env.define(name, fnType);
+      if (!this._isGenericsDefFunction(expression)) {
+        const paramsType = fnParams.map(([_, type]) => Type.formString(type));
+        const fnType = new Type.Function({
+          paramsType,
+          returnType: Type.formString(fnReturn),
+        });
+        env.define(name, fnType);
+      }
       // before checking the function body, we need to know the function's type
       return this.checker(lambdaFunction, env);
     }
     if (this._isKeyword(expression, 'lambda')) {
       // (lambda (params) -> returnType body)
-      const [_tag, fnParams, _retDel, fnReturn, fnBody] = expression;
-      return this._typeCheckFunction(fnParams, fnReturn, fnBody, env);
+      if (!this._isGenericsLambda(expression)) {
+        return this._typeCheckerSimpleFunction(expression, env);
+      }
+      return this._typeCheckerGenericFunction(expression, env);
     }
 
     // (type name base) // (type uuidType (or string number))
@@ -199,7 +203,7 @@ export class EvaTypechecker {
 
       argsType.unshift(classType);
 
-      return this._typeCheckFunctionCall(constructorType, argsType, expression, env);
+      return this._typeCheckerFunctionCall(constructorType, argsType, expression, env);
     }
     if (this._isVariable(expression)) {
       return env.lookup(expression);
@@ -210,7 +214,7 @@ export class EvaTypechecker {
       const [fn, ...args] = expression;
       const fnType = this.checker(fn, env);
       const actualArgsType = args.map((arg) => this.checker(arg, env));
-      return this._typeCheckFunctionCall(fnType, actualArgsType, expression, env);
+      return this._typeCheckerFunctionCall(fnType, actualArgsType, expression, env);
     }
 
     throw `Unknown type for expression: ${expression}`;
@@ -225,7 +229,7 @@ export class EvaTypechecker {
     const [_operator, [_typeof, name], specific] = condition;
     return [name, specific.slice(1, -1)];
   }
-  _typeCheckFunctionCall(fnType, argsType, expression, env) {
+  _typeCheckerFunctionCall(fnType, argsType, expressions, env) {
     const paramsType = fnType.paramsType;
     if (paramsType.length !== argsType.length) {
       throw `Expected ${paramsType.length} arguments, but got ${argsType.length}`;
@@ -235,19 +239,35 @@ export class EvaTypechecker {
       if (paramsType[index] === Type.any) {
         return;
       }
-      this._expect(argType, paramsType[index], argsType[index], expression);
+      this._expect(argType, paramsType[index], argsType[index], expressions);
     });
     return returnType;
   }
-  _transformFunctionDeclarationToLambda(expression) {
-    if (this._isGeneric(expression)) {
-      const [_tag, name, generic, fnParams, _retDel, fnReturn, fnBody] = expression;
-      return ['var', name, ['lambda', generic, fnParams, _retDel, fnReturn, fnBody]];
+  _transformFunctionDeclarationToLambda(expressions) {
+    if (this._isGenericsDefFunction(expressions)) {
+      const [_tag, name, generics, fnParams, _retDel, fnReturn, fnBody] = expressions;
+      return ['var', name, ['lambda', generics, fnParams, _retDel, fnReturn, fnBody]];
     }
-    const [_tag, name, fnParams, _retDel, fnReturn, fnBody] = expression;
+    const [_tag, name, fnParams, _retDel, fnReturn, fnBody] = expressions;
     return ['var', name, ['lambda', fnParams, _retDel, fnReturn, fnBody]];
   }
-  _typeCheckFunction(fnParams, fnReturn, fnBody, env) {
+
+  _typeCheckerSimpleFunction(expressions, env) {
+    const [_tag, fnParams, _retDel, fnReturn, fnBody] = expressions;
+    return this._typeCheckerFunction(fnParams, fnReturn, fnBody, env);
+  }
+  _typeCheckerGenericFunction(expressions, env) {
+    const [_tag, generics, fnParams, _retDel, fnReturn, fnBody] = expressions;
+    return new Type.GenericFunction({
+      generics: generics.slice(1, -1),
+      fnParams,
+      fnReturn,
+      fnBody,
+      env,
+    });
+  }
+
+  _typeCheckerFunction(fnParams, fnReturn, fnBody, env) {
     const returnType = Type.formString(fnReturn);
     const record = {};
     const paramsType = [];
@@ -348,9 +368,14 @@ export class EvaTypechecker {
     }
   }
   // (def name <T> (params) -> returnType body)
-  _isGeneric(expression) {
+  _isGenericsDefFunction(expression) {
     const regexGeneric = /<.*>/;
     return expression.length === 7 && regexGeneric.test(expression[2]);
+  }
+  // (lambda <T> (params) -> returnType body)
+  _isGenericsLambda(expression) {
+    const regexGeneric = /<.*>/;
+    return expression.length === 6 && regexGeneric.test(expression[1]);
   }
   _variableDeclaration(expression, env) {
     const [_tag, nameExpression, value] = expression;
