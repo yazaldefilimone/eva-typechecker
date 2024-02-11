@@ -13,7 +13,7 @@ async function autoLoadTests() {
   const cwd = path.resolve(process.cwd(), 'tests');
   const tests = loadFileWithEndsWith(cwd, ".test.js");
   for (const test of tests) {
-    // console.log(`running ${test}`);
+    console.log(`running ${test}`);
     const testModule = await import(path.resolve(cwd, test));
     testModule.default(evaTypeChecker);
   }
