@@ -27,7 +27,7 @@ export class Type {
     if (this.hasOwnProperty(typeInStr)) {
       return this[typeInStr];
     }
-    if (typeInStr.startsWith('Fn<')) {
+    if (typeof typeInStr === 'string' && typeInStr.startsWith('Fn<')) {
       return Type.Function.formString(typeInStr);
     }
     throw `Unknown type: ${typeInStr}`;
@@ -38,6 +38,7 @@ Type.number = new Type('number');
 Type.boolean = new Type('boolean');
 Type.string = new Type('string');
 Type.null = new Type('null');
+Type.any = new Type('any');
 
 // meta type
 Type.Function = class extends Type {
