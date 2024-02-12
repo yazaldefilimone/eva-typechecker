@@ -4,8 +4,8 @@ import { Type } from "../src/type.js";
 export default (evaTypechecker) => {
   const narrowing = `
   (type T (or string number))
-  (def narrowing ((SorN T)) -> T 
-    (begin 
+  (def narrowing ((SorN T)) -> T
+    (begin
       (if (== (typeof SorN) "number")
         (- SorN 2)
         (+ "Hello " SorN)
@@ -16,6 +16,6 @@ export default (evaTypechecker) => {
 
   exec(evaTypechecker, narrowing);
 
-  test(evaTypechecker, "(narrowing 5)", Type.string);
+  test(evaTypechecker, `(narrowing 5)`, Type.number);
   test(evaTypechecker, `(narrowing "World")`, Type.string);
 }
