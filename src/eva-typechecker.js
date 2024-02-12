@@ -114,7 +114,7 @@ export class EvaTypechecker {
           paramsType,
           returnType: Type.formString(fnReturn),
         });
-        env.define(name, fnType);
+        return env.define(name, fnType);
       }
       // before checking the function body, we need to know the function's type
       return this.checker(lambdaFunction, env);
