@@ -1,0 +1,16 @@
+  (var global 10)
+
+  (def buildSumFn ((x number)) ->  Fn<number<number>> 
+    (begin 
+      (var y 20)
+      (def inner ((z number)) -> number
+        (- (+ x z) global)
+      )
+      inner
+    )
+  )
+  
+  
+(var innerFn (buildSumFn 10))
+
+(innerFn 20)
