@@ -193,8 +193,8 @@ Type.GenericFunction = class extends Type {
     const builtName = `${name || 'lambda'}<${generics}>`;
     super(builtName);
     this.genericsType = generics.split(',');
-    this.fnParams = fnParams;
-    this.fnReturn = fnReturn;
+    this.paramsType = fnParams;
+    this.returnType = fnReturn;
     this.fnBody = fnBody;
     this.env = env;
   }
