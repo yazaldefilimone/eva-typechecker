@@ -3,16 +3,16 @@ import path from "node:path";
 
 import {  EvaTypechecker } from "../src/eva-typechecker.js";
 
-const evaTypeChecker = new EvaTypechecker();
 function loadFileWithEndsWith(path, endsWith){
   const files = readdirSync(path);
   const tests = files.filter(file => file.endsWith(endsWith));
   return tests;
 }
+const cwd = path.resolve(process.cwd(), 'tests');
+const tests = loadFileWithEndsWith(cwd, ".test.js");
 async function autoLoadTests() {
-  const cwd = path.resolve(process.cwd(), 'tests');
-  const tests = loadFileWithEndsWith(cwd, ".test.js");
   for (const test of tests) {
+    const evaTypeChecker = new EvaTypechecker();
     console.log(`running ${test}`);
     const testModule = await import(path.resolve(cwd, test));
     testModule.default(evaTypeChecker);
