@@ -2,7 +2,7 @@
 
 eva typechecker
 
-souce lang: [eva lang](https://github.com/yazaldefilimone/essentials-of-interpretation)
+source code lang: [eva lang](https://github.com/yazaldefilimone/essentials-of-interpretation)
 
 See examples in `./exemples`;
 `./bin/eva-typechecker `
