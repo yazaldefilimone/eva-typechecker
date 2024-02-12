@@ -7,18 +7,16 @@ export default (evaTypechecker) => {
     (+ n1 n2)
   )
   `
-
   exec(evaTypechecker, generics);
+ test(evaTypechecker, "(generic <number> 5 5)", Type.number);
+  test(evaTypechecker, `(generic <string> "Hello, " "World")`, Type.string);
 
-  // test(evaTypechecker, "(generics <number> 5 5)", Type.string);
-  // test(evaTypechecker, `(generics <string> "Hello, " "World")`, Type.string);
-
-  // const lambdaNumberGenerics = `
-  // ((lambda <T> ((n T)) -> T  (+ n 1)) <number> 10)
-  // `
-  // const lambdaStringGenerics = `
-  // ((lambda <T> ((n T)) -> T  (+ n " World")) <string> "Hello")
-  // `
-  // test(evaTypechecker, lambdaNumberGenerics ,Type.number);
-  // test(evaTypechecker, lambdaStringGenerics, Type.string);
+  const lambdaNumberGenerics = `
+  ((lambda <T> ((n T)) -> T  (+ n 1)) <number> 10)
+  `
+  const lambdaStringGenerics = `
+  ((lambda <T> ((n T)) -> T  (+ n " World")) <string> "Hello")
+  `
+  test(evaTypechecker, lambdaNumberGenerics ,Type.number);
+  test(evaTypechecker, lambdaStringGenerics, Type.string);
 }
