@@ -1,6 +1,7 @@
 import { Type } from './type.js';
 import { TypeEnvironment } from './type-environment.js';
-
+const regexGeneric = /<.*>/;
+const regexGenericExtract = /<(.*)>/;
 export class EvaTypechecker {
   constructor() {
     this.global = this._createGlobalEnv();
@@ -86,7 +87,8 @@ export class EvaTypechecker {
       // let record = env;
       if (this._isNarrowingCondition(condition)) {
         const [name, specific] = this._getSpecifiedType(condition);
-        // record = record.extend({ [name]: Type.formString(specific) });
+        // record = new TypeEnvironment({ [name]: Type.formString(specific) }, record);
+        // todo fix: both branches should return the same type
         const record = { [name]: Type.formString(specific) };
         return this.checker(consequent, env.extend(record));
       }
@@ -209,16 +211,61 @@ export class EvaTypechecker {
       return env.lookup(expression);
     }
 
+    // function call
     if (Array.isArray(expression)) {
       // (fn 10)
-      const [fn, ...args] = expression;
-      const fnType = this.checker(fn, env);
-      const actualArgsType = args.map((arg) => this.checker(arg, env));
-      return this._typeCheckerFunctionCall(fnType, actualArgsType, expression, env);
+      const fnName = expression[0];
+      let fnArgs = expression.slice(1);
+      let fnType = this.checker(fnName, env);
+      if (fnType instanceof Type.GenericFunction) {
+        const extractRefGeneric = this._extractAtualCallType(expression);
+        const genericsTypeMap = this._getGenericsMap(fnType.genericsType, extractRefGeneric);
+
+        const [boundParamsType, boundReturnType] = this._bindFunctionType(
+          genericsTypeMap,
+          fnType.paramsType,
+          fnType.returnType,
+        );
+        fnType = this._typeCheckerFunction(boundParamsType, boundReturnType, fnType.fnBody, fnType.env);
+        fnArgs = expression.slice(2);
+      }
+      const fnArgsType = fnArgs.map((arg) => this.checker(arg, env));
+      return this._typeCheckerFunctionCall(fnType, fnArgsType, expression, env);
     }
 
     throw `Unknown type for expression: ${expression}`;
   }
+  _bindFunctionType(genericsTypeMap, paramsType, returnType) {
+    const actualParamsType = [];
+
+    for (let index = 0; index < paramsType.length; index++) {
+      let [name, type] = paramsType[index];
+      if (genericsTypeMap.has(type)) {
+        type = genericsTypeMap.get(type);
+      }
+      actualParamsType.push([name, type]);
+    }
+
+    let actualReturnType = returnType;
+    if (genericsTypeMap.has(returnType)) {
+      actualReturnType = genericsTypeMap.get(returnType);
+    }
+    return [actualParamsType, actualReturnType];
+  }
+  _getGenericsMap(generics, extractRefGeneric) {
+    const genericsTypeMap = new Map();
+    for (const [index, generic] of generics.entries()) {
+      genericsTypeMap.set(generic, extractRefGeneric[index]);
+    }
+    return genericsTypeMap;
+  }
+  _extractAtualCallType(expression) {
+    const [, generics] = expression;
+    const data = regexGenericExtract.exec(generics);
+    if (!data) throw `No actual type providing in generic type: ${expression}`;
+    return data[1].split(',');
+  }
+
   // todo: implement   (if __ (== (typeof wordOrNum) "string")...
   _isNarrowingCondition(condition) {
     const [operator, lhs] = condition;
@@ -271,8 +318,7 @@ export class EvaTypechecker {
     const returnType = Type.formString(fnReturn);
     const record = {};
     const paramsType = [];
-    for (const param of fnParams) {
-      const [paramName, paramType] = param;
+    for (const [paramName, paramType] of fnParams) {
       const type = Type.formString(paramType);
       record[paramName] = type;
       paramsType.push(type);
@@ -334,7 +380,7 @@ export class EvaTypechecker {
   _checkArity(expression, arity) {
     const argsSize = expression.length - 1;
     if (argsSize !== arity) {
-      this._throw(atualType, expectedType, value, expression);
+      throw `Expected ${arity} arguments, but got ${argsSize}`;
     }
   }
 
@@ -369,12 +415,10 @@ export class EvaTypechecker {
   }
   // (def name <T> (params) -> returnType body)
   _isGenericsDefFunction(expression) {
-    const regexGeneric = /<.*>/;
     return expression.length === 7 && regexGeneric.test(expression[2]);
   }
   // (lambda <T> (params) -> returnType body)
   _isGenericsLambda(expression) {
-    const regexGeneric = /<.*>/;
     return expression.length === 6 && regexGeneric.test(expression[1]);
   }
   _variableDeclaration(expression, env) {
