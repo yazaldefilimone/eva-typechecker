@@ -228,7 +228,9 @@ export class EvaTypechecker {
         );
         // todo: pre-install to type combine_string, combine_number, etc!
         fnType = this._typeCheckerFunction(boundParamsType, boundReturnType, fnType.fnBody, fnType.env);
-        fnArgs = expression.slice(2);
+        if (this._isGenerics(expression)) {
+          fnArgs = expression.slice(2);
+        }
       }
       const fnArgsType = fnArgs.map((arg) => this.checker(arg, env));
       return this._typeCheckerFunctionCall(fnType, fnArgsType, expression, env);
@@ -261,10 +263,33 @@ export class EvaTypechecker {
     return genericsTypeMap;
   }
   _extractAtualCallType(expression) {
-    const [, generics] = expression;
-    const data = regexGenericExtract.exec(generics);
-    if (!data) throw `No actual type providing in generic type: ${expression}`;
-    return data[1].split(',');
+    // if (typeof generics === 'string' && !generics.startWith('<')) {
+    //   const type = this.checker(generics);
+    //   console.log({ type });
+    //   return type;
+    // }
+    const isGenerics = this._isGenerics(expression);
+    if (isGenerics) {
+      const [, generics] = expression;
+      const data = regexGenericExtract.exec(generics);
+      if (!data) {
+        throw `No actual type providing in generic type: ${expression}`;
+      }
+      return data[1].split(',');
+    }
+
+    // type inferir
+    const [_tag, ...args] = expression;
+    const argsType = args.map((arg) => this.checker(arg));
+    return argsType;
+  }
+
+  _isGenerics(expressions) {
+    const firstParam = expressions.slice(1)[0];
+    if (typeof firstParam === 'string' && firstParam.includes('<')) {
+      return true;
+    }
+    return false;
   }
 
   // todo: implement   (if __ (== (typeof wordOrNum) "string")...
