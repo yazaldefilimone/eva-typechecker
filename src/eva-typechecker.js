@@ -226,8 +226,8 @@ export class EvaTypechecker {
           fnType.paramsType,
           fnType.returnType,
         );
-        // todo: pre-install to type combine_string, combine_number, etc!
         fnType = this._typeCheckerFunction(boundParamsType, boundReturnType, fnType.fnBody, fnType.env);
+        //  remove generics if have it
         if (this._isGenerics(expression)) {
           fnArgs = expression.slice(2);
         }
