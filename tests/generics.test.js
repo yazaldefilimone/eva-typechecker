@@ -23,13 +23,26 @@ export default (evaTypechecker) => {
 
 
   const testFn =  `
-  (def test <T> ((type T)) -> number
-    (* type 2)
+  (def test <T> ((t T)) -> number
+    (* t 2)
   )
   (test 10)
   `
-
-
-
   test(evaTypechecker, testFn, Type.number)
+
+
+  // complex infer type 
+
+// todo: fix order of infer type: 
+// error: Expected string type for string in  test,10,"hello" but got number
+// maybe:
+/// error: Expected number type for string in  test,10,"hello" but got string
+// 
+  const complexInferType = `
+  (def test <T> ((type T) (n T)) -> T
+    (+ 1 1)
+  )
+  (test 10 10)
+  `
+  test(evaTypechecker, complexInferType, Type.number)
 }
